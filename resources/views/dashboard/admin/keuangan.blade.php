@@ -267,6 +267,10 @@
             doc.autoTable({
                 head: [['No', 'Tanggal', 'Transaksi', 'Ruangan', 'F&B', 'Extend', 'Total']],
                 body: tableData,
+                foot: [[
+                    { content: 'GRAND TOTAL', colSpan: 6, styles: { halign: 'right', textColor: [208, 183, 91] } },
+                    { content: formatRp(totalPendapatan), styles: { halign: 'right', textColor: [255, 255, 255] } }
+                ]],
                 startY: 40,
                 margin: { left: margin, right: margin },
                 theme: 'grid',
@@ -283,6 +287,12 @@
                     fontStyle: 'bold',
                     fontSize: 8,
                     halign: 'center'
+                },
+                footStyles: {
+                    fillColor: [30, 30, 30],
+                    fontStyle: 'bold',
+                    fontSize: 9,
+                    cellPadding: 4
                 },
                 alternateRowStyles: { fillColor: [248, 248, 248] },
                 columnStyles: {
@@ -314,23 +324,6 @@
                     doc.text('Halaman ' + d.pageNumber, pw - margin, ph - 5, { align: 'right' });
                 }
             });
-
-            // ── Grand Total Row after table ──
-            let grandY = doc.lastAutoTable.finalY + 5;
-            // If not enough space, add new page
-            if (grandY > ph - 25) {
-                doc.addPage();
-                grandY = 15;
-            }
-            doc.setFillColor(30, 30, 30);
-            doc.roundedRect(margin, grandY, pw - (margin * 2), 12, 2, 2, 'F');
-            doc.setTextColor(208, 183, 91);
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'bold');
-            doc.text('GRAND TOTAL', margin + 8, grandY + 8);
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(11);
-            doc.text(formatRp(totalPendapatan), pw - margin - 8, grandY + 8, { align: 'right' });
 
             // ── Save ──
             const filterType = @json($filterType);
