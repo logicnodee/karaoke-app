@@ -1,0 +1,25 @@
+{
+  "public/assets/fonts/madefor_display.woff2": {
+    "file": "assets/madefor_display-DrydWVd4.woff2",
+    "src": "public/assets/fonts/madefor_display.woff2"
+  },
+  "public/assets/fonts/wf_header.woff2": {
+    "file": "assets/wf_header-AD1eQcyK.woff2",
+    "src": "public/assets/fonts/wf_header.woff2"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-DIdhcdx1.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-CKl8NZMC.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}
