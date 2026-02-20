@@ -1770,12 +1770,13 @@
 
                         // Extract just the filename from the path for streaming route
                         let filename = url;
+                        // Remove /assets/lagu/ prefix if present
                         if (filename.startsWith('/assets/lagu/')) {
                             filename = filename.substring('/assets/lagu/'.length);
                         }
                         
-                        // Use static file directly. Vercel Edge Network supports Range requests properly
-                        url = '/assets/lagu/' + filename.split('/').map(encodeURIComponent).join('/');
+                        // Use streaming route for proper Range request support (required for seeking)
+                        url = '/stream/video/' + encodeURIComponent(filename);
 
                         // Helper to setup fallback video
                         const setupFallbackPreview = () => {
