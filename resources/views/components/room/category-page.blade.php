@@ -45,7 +45,7 @@
      }">
 
     {{-- Hero Section --}}
-    <div class="pt-40 pb-12 pl-8 md:pl-12 pr-[360px] relative z-10">
+    <div class="pt-40 pb-12 pl-8 md:pl-12 pr-8 md:pr-12 relative z-10">
 
         {{-- Search Section --}}
         <div class="flex flex-col md:flex-row items-end justify-between gap-8 mb-12">
@@ -61,7 +61,7 @@
                         <input type="text"
                                x-model.debounce.300ms="queryTitle"
                                placeholder="Cari Judul Lagu..."
-                               class="w-full bg-[#1a1a1a] border border-white/20 text-white text-xl rounded-2xl py-6 pl-16 pr-12 focus:outline-none focus:border-[#D0B75B] focus:ring-1 focus:ring-[#D0B75B] placeholder-gray-500 transition-all shadow-lg">
+                               class="w-full bg-[#1a1a1a] border border-white/20 text-white text-lg rounded-2xl py-4 pl-16 pr-12 focus:outline-none focus:border-[#D0B75B] focus:ring-1 focus:ring-[#D0B75B] placeholder-gray-500 transition-all shadow-lg">
 
                         <button x-show="queryTitle"
                                 @click="queryTitle = ''"
@@ -79,7 +79,7 @@
                         <input type="text"
                                x-model.debounce.300ms="queryArtist"
                                placeholder="Cari Nama Artis..."
-                               class="w-full bg-[#1a1a1a] border border-white/20 text-white text-xl rounded-2xl py-6 pl-16 pr-12 focus:outline-none focus:border-[#D0B75B] focus:ring-1 focus:ring-[#D0B75B] placeholder-gray-500 transition-all shadow-lg">
+                               class="w-full bg-[#1a1a1a] border border-white/20 text-white text-lg rounded-2xl py-4 pl-16 pr-12 focus:outline-none focus:border-[#D0B75B] focus:ring-1 focus:ring-[#D0B75B] placeholder-gray-500 transition-all shadow-lg">
 
                         <button x-show="queryArtist"
                                 @click="queryArtist = ''"
@@ -93,25 +93,27 @@
         </div>
 
         {{-- Top Chart Section --}}
-        <div class="mb-12 mt-8" x-show="!queryTitle && !queryArtist">
-            <h2 class="text-2xl font-bold text-white mb-6">Top Chart Minggu Ini</h2>
+        <div class="mb-4 mt-6" x-show="!queryTitle && !queryArtist">
+            <h2 class="text-2xl font-bold text-white mb-4">Top Chart</h2>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 <template x-for="(song, index) in topSongs" :key="index">
-                    <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-white/5"
+                   <div class="flex items-center gap-2 p-2 bg-[#1a1a1a] rounded-lg hover:bg-[#252525] border border-white/5 hover:border-[#D0B75B]/30 transition-all group cursor-pointer shadow-sm"
                          @click="addToPlaylist(song, $event)">
 
                         {{-- Rank --}}
-                        <span class="text-base font-bold w-6 text-center text-gray-500 shrink-0" x-text="index + 1"></span>
+                        <div class="w-6 h-6 rounded-full bg-black/30 flex items-center justify-center shrink-0 border border-white/5">
+                            <span class="text-xs font-bold text-[#D0B75B]" x-text="index + 1"></span>
+                        </div>
 
                         {{-- Info --}}
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-white text-sm truncate group-hover:text-[#D0B75B] transition-colors" x-text="song.judul"></h4>
-                            <p class="text-xs text-gray-400 truncate" x-text="song.artis"></p>
+                            <h4 class="font-bold text-white text-xs line-clamp-1 group-hover:text-[#D0B75B] transition-colors" x-text="song.judul"></h4>
+                            <p class="text-[10px] text-gray-400 truncate" x-text="song.artis"></p>
                         </div>
 
                         {{-- Add Button --}}
-                        <div class="w-6 h-6 rounded-full bg-white/5 group-hover:bg-white/20 flex items-center justify-center text-gray-400 group-hover:text-[#D0B75B] transition-colors shrink-0">
+                        <div class="w-6 h-6 rounded-full bg-white/5 group-hover:bg-[#D0B75B] group-hover:text-black flex items-center justify-center text-gray-400 transition-all shrink-0">
                             <i data-lucide="plus" class="w-3 h-3"></i>
                         </div>
                     </div>
@@ -120,18 +122,18 @@
         </div>
 
         {{-- Song Lists (Grid) --}}
-        <div class="space-y-8 pb-20">
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div class="space-y-4 pb-20">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 <template x-for="(song, index) in filteredSongs" :key="song.id ?? index">
-                    <div class="group relative bg-[#1a1a1a] rounded-lg border border-white/5 hover:border-[#D0B75B]/50 hover:bg-[#202020] transition-all duration-200 cursor-pointer p-3 flex items-center justify-between gap-3"
+                    <div class="group relative bg-[#1a1a1a] rounded-lg border border-white/5 hover:border-[#D0B75B]/50 hover:bg-[#202020] transition-all duration-200 cursor-pointer p-2 flex items-center justify-between gap-3"
                          @click="addToPlaylist(song, $event)">
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-white text-sm truncate mb-0.5 group-hover:text-[#D0B75B] transition-colors" x-text="song.judul"></h4>
-                            <p class="text-xs text-gray-400 truncate" x-text="song.artis"></p>
+                            <h4 class="font-bold text-white text-xs line-clamp-1 mb-0.5 group-hover:text-[#D0B75B] transition-colors" x-text="song.judul"></h4>
+                            <p class="text-[10px] text-gray-400 truncate" x-text="song.artis"></p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <div class="w-8 h-8 rounded-full bg-white/5 group-hover:bg-white/20 flex items-center justify-center text-gray-400 group-hover:text-[#D0B75B] transition-colors">
-                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            <div class="w-6 h-6 rounded-full bg-white/5 group-hover:bg-[#D0B75B] group-hover:text-black flex items-center justify-center text-gray-400 transition-all">
+                                <i data-lucide="plus" class="w-3 h-3"></i>
                             </div>
                         </div>
                     </div>
