@@ -83,6 +83,7 @@
                 customerPhone: '',
                 customerDomicile: '',
                 showReceiptPreview: false,
+                generatedAccessCode: '',
                 
                 // Variation Modal State (Legacy - kept for safety but unused in new flow)
                 showVariationModal: false,
@@ -300,6 +301,7 @@
                         this.showToast('Masukkan nama pelanggan terlebih dahulu!', 'error');
                         return;
                     }
+                    this.generatedAccessCode = 'K-' + Math.floor(100 + Math.random() * 899);
                     this.showReceiptPreview = true;
                  },
 
@@ -985,7 +987,7 @@
             <div class="p-6 space-y-4" id="receipt-content">
                 {{-- Receipt Header --}}
                 <div class="text-center space-y-1 border-b-2 border-dashed border-black/10 pb-4">
-                    <h2 class="text-xl font-black uppercase tracking-wider">MICS KARAOKE</h2>
+                    <h2 class="text-xl font-black uppercase tracking-wider">SGRT KARAOKE</h2>
                     <p class="text-[10px] text-gray-600">Jl. Hiburan No. 123, Jakarta Public</p>
                     <p class="text-[10px] text-gray-600">Telp: 021-555-0199</p>
                 </div>
@@ -1047,7 +1049,6 @@
 
                 <div class="border-t-2 border-dashed border-black/10"></div>
 
-                {{-- Totals --}}
                 <div class="space-y-1">
                     <div class="flex justify-between text-xs font-bold">
                         <span>TOTAL</span>
@@ -1057,6 +1058,14 @@
                          <p class="text-[9px] text-center text-gray-500 italic mt-2">*Harga final dihitung saat checkout</p>
                     </template>
                 </div>
+
+                {{-- Access Code Section (If Regular/Paket) --}}
+                <template x-if="selectedRoom && selectedRoom.bookingRaw.mode !== 'open'">
+                    <div class="border-2 border-[#D0B75B] rounded-lg p-2 text-center mt-4 bg-[#D0B75B]/10">
+                        <p class="text-[8px] font-bold text-[#D0B75B] uppercase tracking-widest mb-1">Kode Akses Room</p>
+                        <p class="text-xl font-black text-[#D0B75B] tracking-widest" x-text="generatedAccessCode"></p>
+                    </div>
+                </template>
 
                 <div class="border-t-2 border-dashed border-black/10 pt-4 text-center">
                     <p class="text-[10px] font-bold">TERIMA KASIH</p>

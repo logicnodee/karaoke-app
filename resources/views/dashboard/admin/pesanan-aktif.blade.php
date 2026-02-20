@@ -162,7 +162,7 @@
                     <div id="receipt-printable" class="p-8 font-mono text-black text-xs leading-relaxed bg-white overflow-y-auto">
                         {{-- Logo/Header --}}
                         <div class="text-center mb-6">
-                            <h2 class="text-xl font-black uppercase mb-1 tracking-widest">MICS KARAOKE</h2>
+                            <h2 class="text-xl font-black uppercase mb-1 tracking-widest">SGRT KARAOKE</h2>
                             <p class="text-[10px] text-gray-500">Jl. Hiburan Malam No. 99, Jakarta</p>
                             <p class="text-[10px] text-gray-500">Telp: (021) 555-9999</p>
                         </div>
