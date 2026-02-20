@@ -1033,8 +1033,8 @@
                     </template>
                 </div>
 
-                {{-- Items --}}
-                <template x-if="cart.length > 0">
+                {{-- Items (Hidden on Open Billing) --}}
+                <template x-if="cart.length > 0 && (!selectedRoom || selectedRoom.bookingRaw.mode !== 'open')">
                     <div class="pt-2 border-t border-dashed border-black/10 space-y-2">
                         <template x-for="item in cart" :key="item.name">
                             <div class="text-[10px] flex justify-between items-start">
@@ -1047,24 +1047,29 @@
                     </div>
                 </template>
 
-                <div class="border-t-2 border-dashed border-black/10"></div>
+                <template x-if="!selectedRoom || selectedRoom.bookingRaw.mode !== 'open'">
+                    <div class="border-t-2 border-dashed border-black/10 mt-4 mb-2"></div>
+                </template>
 
-                <div class="space-y-1">
-                    <div class="flex justify-between text-xs font-bold">
-                        <span>TOTAL</span>
-                        <span class="text-lg" x-text="selectedRoom && selectedRoom.bookingRaw.mode === 'open' ? '---' : formatMoney(grandTotal)"></span>
+                <template x-if="!selectedRoom || selectedRoom.bookingRaw.mode !== 'open'">
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span>TOTAL</span>
+                            <span class="text-lg" x-text="formatMoney(grandTotal)"></span>
+                        </div>
                     </div>
-                    <template x-if="selectedRoom && selectedRoom.bookingRaw.mode === 'open'">
-                         <p class="text-[9px] text-center text-gray-500 italic mt-2">*Harga final dihitung saat checkout</p>
-                    </template>
-                </div>
+                </template>
 
-                {{-- Access Code Section (If Regular/Paket) --}}
-                <template x-if="selectedRoom && selectedRoom.bookingRaw.mode !== 'open'">
+                {{-- Access Code Section (Always Show) --}}
+                <template x-if="selectedRoom">
                     <div class="border-2 border-[#D0B75B] rounded-lg p-2 text-center mt-4 bg-[#D0B75B]/10">
                         <p class="text-[8px] font-bold text-[#D0B75B] uppercase tracking-widest mb-1">Kode Akses Room</p>
                         <p class="text-xl font-black text-[#D0B75B] tracking-widest" x-text="generatedAccessCode"></p>
                     </div>
+                </template>
+
+                <template x-if="selectedRoom && selectedRoom.bookingRaw.mode === 'open'">
+                     <p class="text-[9px] text-center text-gray-500 italic mt-4">*Pesanan F&B dan tagihan akhir akan diakumulasikan dan dibayar saat check-out.</p>
                 </template>
 
                 <div class="border-t-2 border-dashed border-black/10 pt-4 text-center">
