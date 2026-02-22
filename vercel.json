@@ -17,11 +17,6 @@
             "use": "@vercel/static"
         }
     ],
-    "functions": {
-        "api/index.php": {
-            "excludeFiles": "public/assets/{video_banner,lagu}/**"
-        }
-    },
     "routes": [
         {
             "src": "/build/(.*)",
