@@ -64,13 +64,18 @@
         },
         playVideo(file) {
             if(!file) {
-                alert('File video tidak tersedia');
+                alert('ID YouTube tidak tersedia');
                 return;
             }
-            this.activeVideo = '/admin/video/' + encodeURIComponent(file);
+            this.activeVideo = 'https://www.youtube.com/embed/' + encodeURIComponent(file) + '?autoplay=1';
         },
         closeVideo() {
             this.activeVideo = null;
+        },
+        extractYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : url;
         },
         formatDuration(seconds) {
             if (!seconds) return '00:00';
@@ -80,18 +85,20 @@
         },
         addSong() {
             if(!this.newSong.judul || !this.newSong.artis || !this.newSong.file) {
-                 alert('Mohon lengkapi semua data termasuk file video.');
+                 alert('Mohon lengkapi semua data termasuk Link/ID YouTube.');
                  return;
             }
             
+            const ytId = this.extractYoutubeId(this.newSong.file);
+
             this.songs.unshift({
                 judul: this.newSong.judul,
                 artis: this.newSong.artis,
                 genre: this.newSong.genre,
                 bahasa: this.newSong.bahasa,
-                durasi: '00:00',
+                durasi: '04:00',
                 diputar: 0,
-                file: this.newSong.file,
+                file: ytId,
                 isTopChart: false
             });
             
@@ -101,19 +108,19 @@
             this.refreshIcons();
         },
         openEditModal(song, index) {
-            // Find actual index in the main array if using filteredSongs
-            // But here we can just map the index or pass the song object
-            // To keep it simple for prototype, we'll find the index in main array
             this.editIndex = this.songs.indexOf(song);
             this.newSong = { ...song }; 
             this.editMode = true;
             this.showModal = true;
         },
         updateSong() {
-            if(!this.newSong.judul || !this.newSong.artis) {
+            if(!this.newSong.judul || !this.newSong.artis || !this.newSong.file) {
                  alert('Mohon lengkapi data utama.');
                  return;
             }
+            
+            const ytId = this.extractYoutubeId(this.newSong.file);
+            this.newSong.file = ytId;
             
             // Assign back to array
             this.songs[this.editIndex] = { ...this.newSong };
@@ -204,21 +211,14 @@
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
                                         <div @click="playVideo(lagu.file)" class="w-20 h-12 rounded-lg bg-zinc-800 overflow-hidden relative group/thumb cursor-pointer border border-white/10 shrink-0">
-                                            <video :src="'/admin/video/' + encodeURIComponent(lagu.file)" 
-                                                   class="w-full h-full object-cover opacity-80 group-hover/thumb:opacity-100 transition-opacity grayscale group-hover/thumb:grayscale-0"
-                                                   muted 
-                                                   loop
-                                                   preload="metadata"
-                                                   @loadedmetadata="if($event.target.duration > 1 && isFinite($event.target.duration)) lagu.realDuration = formatDuration($event.target.duration)"
-                                                   @mouseenter="$el.play()" 
-                                                   @mouseleave="$el.pause(); $el.currentTime = 0">
-                                            </video>
+                                            <img :src="'https://img.youtube.com/vi/' + lagu.file + '/mqdefault.jpg'" 
+                                                 class="w-full h-full object-cover opacity-80 group-hover/thumb:opacity-100 transition-opacity grayscale group-hover/thumb:grayscale-0"
+                                                 alt="Thumbnail">
                                             <div class="absolute inset-0 flex items-center justify-center bg-black/40 group-hover/thumb:bg-black/20 transition-colors">
                                                  <div class="w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover/thumb:bg-[#D0B75B] group-hover/thumb:text-black transition-all shadow-lg">
                                                     <i data-lucide="play" class="w-3 h-3 text-white group-hover/thumb:text-black fill-current ml-0.5"></i>
                                                  </div>
                                             </div>
-                                            <div class="absolute bottom-1 right-1 bg-black/60 px-1 py-0.5 rounded text-[8px] text-white font-mono opacity-0 group-hover/thumb:opacity-100 transition-opacity" x-text="lagu.realDuration || '...'"></div>
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-white font-bold text-sm" x-text="lagu.judul"></span>
@@ -288,14 +288,13 @@
                         <input type="text" x-model="newSong.artis" class="w-full bg-zinc-900/50 text-white border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#D0B75B]/50 transition-all placeholder:text-zinc-700" placeholder="Contoh: Mahalini">
                     </div>
                     <div>
-                        <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Upload Video (MP4)</label>
-                        <div class="relative">
-                            <input type="file" accept="video/mp4" @change="newSong.file = $event.target.files[0] ? $event.target.files[0].name : ''" 
-                                   class="w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-black file:font-semibold file:bg-[#D0B75B] hover:file:bg-[#e0c86b] file:cursor-pointer cursor-pointer border border-white/10 rounded-lg bg-zinc-900/50 focus:outline-none focus:border-[#D0B75B]/50 transition-all">
-                        </div>
-                        <p x-show="newSong.file" class="text-[10px] text-[#D0B75B] mt-1 italic flex items-center gap-1">
-                            <i data-lucide="check" class="w-3 h-3"></i> <span x-text="newSong.file"></span>
-                        </p>
+                        <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Link Youtube Atau ID Video</label>
+                        <input type="text" x-model="newSong.file" class="w-full bg-zinc-900/50 text-white border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#D0B75B]/50 transition-all placeholder:text-zinc-700" placeholder="Contoh: https://www.youtube.com/watch?v=pKfXFHLeR-w">
+                        <template x-if="newSong.file">
+                            <div class="mt-2 w-full h-32 rounded bg-zinc-800 overflow-hidden relative border border-white/5">
+                                <img :src="'https://img.youtube.com/vi/' + extractYoutubeId(newSong.file) + '/mqdefault.jpg'" class="w-full h-full object-cover opacity-80">
+                            </div>
+                        </template>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -349,13 +348,15 @@
              style="display: none;"
              class="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
              x-transition.opacity>
-            <div @click.away="closeVideo()" class="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-                <div class="absolute top-4 right-4 z-10">
-                    <button @click="closeVideo()" class="bg-black/50 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm transition-all">
-                        <i data-lucide="x" class="w-6 h-6"></i>
+            <div @click.away="closeVideo()" class="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video">
+                <div class="absolute top-4 right-4 z-[80]">
+                    <button @click="closeVideo()" class="bg-black/50 hover:bg-[#D0B75B] hover:text-black text-white p-2 rounded-full backdrop-blur-sm transition-all shadow-lg">
+                        <i data-lucide="x" class="w-6 h-6 border-transparent"></i>
                     </button>
                 </div>
-                <video x-bind:src="activeVideo" controls autoplay class="w-full h-auto max-h-[80vh] aspect-video bg-black"></video>
+                <template x-if="activeVideo">
+                    <iframe :src="activeVideo" class="w-full h-full border-0 absolute inset-0 z-[75]" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </template>
             </div>
         </div>
 
