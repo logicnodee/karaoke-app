@@ -7,8 +7,7 @@
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
     <link rel="icon" type="image/png" href="/assets/img/global/krls_logo.png">
     <style>
         @font-face {
@@ -116,447 +115,202 @@
         @yield('content')
     </main>
 
-    {{-- VIDEO PLAYER OVERLAY --}}
-    {{-- VIDEO PLAYER OVERLAY --}}
-    <div class="fixed inset-0 z-[100] bg-black group/player"
+    {{-- VIDEO PLAYER OVERLAY (YouTube Native - Full YouTube Experience) --}}
+    <div class="fixed inset-0 z-[100] bg-black"
          x-ref="playerContainer"
          x-show="isPlayerOpen"
          x-transition.opacity.duration.300ms
-         :class="showControls ? '' : 'cursor-none'"
-         style="display: none;"
-         @mousemove="handleActivity"
-         @click="handleActivity">
+         style="display: none;">
          
-         <div class="relative w-full h-full bg-black overflow-hidden group">
-             {{-- Video Player --}}
-             <video x-ref="mainVideo" crossorigin="anonymous" class="w-full h-full object-contain transition-transform duration-500" 
-                @ended="handleEnded" 
-                @click="togglePlay"
-                @timeupdate="updateProgress"
-                @loadedmetadata="updateProgress"
-                @waiting="playerState.loading = true"
-                @playing="playerState.loading = false; playerState.playing = true"
-                @pause="playerState.playing = false"
-                @seeked="playerState.isSeeking = false"
-                @progress="updateProgress"></video>
+         <div class="relative w-full h-full bg-black overflow-hidden" @mouseleave="hideControls">
+             {{-- YouTube Player Container (fills the entire screen) --}}
+             <div id="yt-player-container" class="w-full h-full"></div>
 
-         {{-- Top Bar --}}
-         <div class="absolute top-0 left-0 right-0 p-8 flex justify-between items-start z-[110] bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-opacity duration-300"
-              :class="showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'">
-             <button @click="closePlayer()" class="text-white hover:text-[#D0B75B] transition-colors p-2 rounded-full hover:bg-white/10">
-                 <i data-lucide="arrow-left" class="w-8 h-8"></i>
-             </button>
-              <button @click="showReportModal = true" class="text-white hover:text-red-500 transition-colors p-2 rounded-full hover:bg-white/10">
-                  <i data-lucide="flag" class="w-6 h-6"></i>
-              </button>
-         </div>
+             {{-- Mouse Movement Catcher for Iframe --}}
+             <div class="absolute inset-0 z-[105]"
+                  :class="showControls ? 'pointer-events-none' : 'pointer-events-auto'"
+                  @mousemove="handleActivity"
+                  @click="handleActivity">
+             </div>
 
-
-         
-         {{-- Loading Spinner --}}
-
-
-         <div x-show="playerState.loading" class="absolute inset-0 flex items-center justify-center pointer-events-none z-[105]">
-             <div class="w-16 h-16 border-4 border-[#D0B75B] border-t-transparent rounded-full animate-spin"></div>
-         </div>
-
-         {{-- Report Modal --}}
-         <div class="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-              x-show="showReportModal"
-              x-transition:enter="transition ease-out duration-300"
-              x-transition:enter-start="opacity-0"
-              x-transition:enter-end="opacity-100"
-              x-transition:leave="transition ease-in duration-200"
-              x-transition:leave-start="opacity-100"
-              x-transition:leave-end="opacity-0"
-              style="display: none;">
-              
-             <div class="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 relative"
-                  @click.outside="showReportModal = false; reportType = null; reportNote = ''">
+             {{-- Floating Controls Layer - pointer-events:none so clicks pass to YouTube --}}
+             <div class="absolute inset-0 z-[110] pointer-events-none">
                  
-                 <button @click="showReportModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                     <i data-lucide="x" class="w-5 h-5"></i>
-                 </button>
+                 {{-- Top-Left: Back Button --}}
+                 <div class="absolute top-24 left-6 transition-opacity duration-300"
+                      :class="showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+                     <button @click="closePlayer()" 
+                             class="flex items-center gap-3 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white px-4 py-2.5 rounded-full transition-all duration-200 shadow-lg border border-white/10 hover:border-white/20 group">
+                         <i data-lucide="arrow-left" class="w-5 h-5 group-hover:text-[#D0B75B] transition-colors"></i>
+                         <span class="text-sm font-medium hidden sm:inline" x-text="currentSong?.judul || 'Kembali'"></span>
+                     </button>
+                 </div>
 
-                 <h3 class="text-xl font-bold text-white mb-2">Laporkan Masalah</h3>
-                 <p class="text-sm text-gray-400 mb-6">Apa masalah pada lagu <span class="text-[#D0B75B]" x-text="currentSong?.judul"></span>?</p>
+                 {{-- Bottom-Center: Playlist + Report --}}
+                 <div class="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-4 transition-opacity duration-300"
+                      :class="showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+                     
+                     {{-- Previous Song --}}
+                     <button @click="playPrevious()" 
+                             class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2.5 rounded-full transition-all duration-200 shadow-lg border border-white/10 hover:border-white/20 hover:text-[#D0B75B]">
+                         <i data-lucide="skip-back" class="w-5 h-5 fill-current"></i>
+                     </button>
+                     
+                     {{-- Next Song --}}
+                     <button @click="playNext()" 
+                             class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2.5 rounded-full transition-all duration-200 shadow-lg border border-white/10 hover:border-white/20 hover:text-[#D0B75B]">
+                         <i data-lucide="skip-forward" class="w-5 h-5 fill-current"></i>
+                     </button>
 
-                 <div class="space-y-3">
-                     {{-- Quick Options --}}
-                     <div class="grid grid-cols-2 gap-3">
-                         <button @click="submitReport('Audio Bermasalah')" class="p-3 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 text-gray-300 transition-all flex flex-col items-center justify-center gap-2 group">
-                             <i data-lucide="volume-x" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
-                             <span class="text-xs font-bold">Audio Masalah</span>
-                         </button>
-                         <button @click="submitReport('Video Error')" class="p-3 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 text-gray-300 transition-all flex flex-col items-center justify-center gap-2 group">
-                             <i data-lucide="monitor-x" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
-                             <span class="text-xs font-bold">Video Error</span>
-                         </button>
-                         <button @click="submitReport('Lirik Salah')" class="p-3 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 text-gray-300 transition-all flex flex-col items-center justify-center gap-2 group">
-                             <i data-lucide="align-left" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
-                             <span class="text-xs font-bold">Lirik Salah</span>
-                         </button>
-                         <button @click="reportType = 'Lainnya'" 
-                                 class="p-3 border rounded-xl transition-all flex flex-col items-center justify-center gap-2 group"
-                                 :class="reportType === 'Lainnya' ? 'bg-[#D0B75B] border-[#D0B75B] text-black' : 'border-white/10 hover:bg-white/5 text-gray-300'">
-                             <i data-lucide="edit-3" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
-                             <span class="text-xs font-bold">Lainnya</span>
-                         </button>
-                     </div>
+                     {{-- Playlist Toggle --}}
+                     <button id="playlist-toggle" @click="showMiniPlaylist = !showMiniPlaylist" 
+                             class="relative bg-black/60 hover:bg-black/80 backdrop-blur-md p-2.5 rounded-full transition-all duration-200 shadow-lg border border-white/10 hover:border-white/20"
+                             :class="showMiniPlaylist ? 'text-[#D0B75B] border-[#D0B75B]/30' : 'text-white'">
+                         <i data-lucide="list-music" class="w-5 h-5"></i>
+                         <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D0B75B] rounded-full text-[9px] font-bold text-black flex items-center justify-center" 
+                               x-show="playlist.length > 0"
+                               x-text="playlist.length"></span>
+                     </button>
 
-                     {{-- Manual Input for 'Lainnya' --}}
-                     <div x-show="reportType === 'Lainnya'" class="pt-2">
-                         <textarea x-model="reportNote" 
-                                   class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-[#D0B75B] placeholder-gray-600 resize-none"
-                                   rows="3"
-                                   placeholder="Jelaskan masalahnya secara detail..."></textarea>
-                         <button @click="submitReport('Lainnya', reportNote)" 
-                                 class="w-full mt-3 bg-[#D0B75B] text-black font-bold py-2 rounded-lg hover:bg-[#e1c564] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                 :disabled="!reportNote.trim()">
-                             Kirim Laporan
-                         </button>
+                     {{-- Fullscreen Toggle --}}
+                     <button @click="toggleFullScreen" 
+                             class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2.5 rounded-full transition-all duration-200 shadow-lg border border-white/10 hover:border-white/20 hover:text-[#D0B75B]">
+                         <i :data-lucide="isFullscreen ? 'minimize' : 'maximize'" class="w-5 h-5"></i>
+                     </button>
+
+                     {{-- Report --}}
+                     <button @click="showReportModal = true" 
+                             class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-red-400 p-2.5 rounded-full transition-all duration-200 shadow-lg border border-white/10 hover:border-red-500/30">
+                         <i data-lucide="flag" class="w-5 h-5"></i>
+                     </button>
+                 </div>
+             </div>
+
+             {{-- Loading Spinner --}}
+             <div x-show="playerState.loading" class="absolute inset-0 flex items-center justify-center pointer-events-none z-[105]">
+                 <div class="w-16 h-16 border-4 border-[#D0B75B] border-t-transparent rounded-full animate-spin"></div>
+             </div>
+
+             {{-- Report Modal --}}
+             <div class="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                  x-show="showReportModal"
+                  x-transition:enter="transition ease-out duration-300"
+                  x-transition:enter-start="opacity-0"
+                  x-transition:enter-end="opacity-100"
+                  x-transition:leave="transition ease-in duration-200"
+                  x-transition:leave-start="opacity-100"
+                  x-transition:leave-end="opacity-0"
+                  style="display: none;">
+                  
+                 <div class="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 relative"
+                      @click.outside="showReportModal = false; reportType = null; reportNote = ''">
+                     
+                     <button @click="showReportModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                         <i data-lucide="x" class="w-5 h-5"></i>
+                     </button>
+
+                     <h3 class="text-xl font-bold text-white mb-2">Laporkan Masalah</h3>
+                     <p class="text-sm text-gray-400 mb-6">Apa masalah pada lagu <span class="text-[#D0B75B]" x-text="currentSong?.judul"></span>?</p>
+
+                     <div class="space-y-3">
+                         <div class="grid grid-cols-2 gap-3">
+                             <button @click="submitReport('Audio Bermasalah')" class="p-3 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 text-gray-300 transition-all flex flex-col items-center justify-center gap-2 group">
+                                 <i data-lucide="volume-x" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                                 <span class="text-xs font-bold">Audio Masalah</span>
+                             </button>
+                             <button @click="submitReport('Video Error')" class="p-3 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 text-gray-300 transition-all flex flex-col items-center justify-center gap-2 group">
+                                 <i data-lucide="monitor-x" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                                 <span class="text-xs font-bold">Video Error</span>
+                             </button>
+                             <button @click="submitReport('Lirik Salah')" class="p-3 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 text-gray-300 transition-all flex flex-col items-center justify-center gap-2 group">
+                                 <i data-lucide="align-left" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                                 <span class="text-xs font-bold">Lirik Salah</span>
+                             </button>
+                             <button @click="reportType = 'Lainnya'" 
+                                     class="p-3 border rounded-xl transition-all flex flex-col items-center justify-center gap-2 group"
+                                     :class="reportType === 'Lainnya' ? 'bg-[#D0B75B] border-[#D0B75B] text-black' : 'border-white/10 hover:bg-white/5 text-gray-300'">
+                                 <i data-lucide="edit-3" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                                 <span class="text-xs font-bold">Lainnya</span>
+                             </button>
+                         </div>
+                         <div x-show="reportType === 'Lainnya'" class="pt-2">
+                             <textarea x-model="reportNote" 
+                                       class="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-[#D0B75B] placeholder-gray-600 resize-none"
+                                       rows="3"
+                                       placeholder="Jelaskan masalahnya secara detail..."></textarea>
+                             <button @click="submitReport('Lainnya', reportNote)" 
+                                     class="w-full mt-3 bg-[#D0B75B] text-black font-bold py-2 rounded-lg hover:bg-[#e1c564] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                     :disabled="!reportNote.trim()">
+                                 Kirim Laporan
+                             </button>
+                         </div>
                      </div>
                  </div>
              </div>
-         </div>
 
-         {{-- Mini Playlist Overlay --}}
-         <div class="absolute bottom-32 right-8 w-96 bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[120] overflow-hidden flex flex-col max-h-[60vh] transition-opacity duration-300"
-              x-show="showMiniPlaylist"
-              :class="!showControls ? 'opacity-0 pointer-events-none' : ''"
-              x-transition:enter="transition ease-out duration-300 transform"
-              x-transition:enter-start="opacity-0 translate-y-4 scale-95"
-              x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-              x-transition:leave="transition ease-[cubic-bezier(0.4,0,0.2,1)] duration-300 transform"
-              x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-              x-transition:leave-end="opacity-0 translate-y-4 scale-95">
-              
-              <div class="p-4 border-b border-white/10 flex items-center justify-between bg-[#121212]/50">
-                  <div class="flex items-center gap-2">
-                       <i data-lucide="arrow-left" class="w-4 h-4 text-gray-400"></i>
-                       <h3 class="font-bold text-white text-sm">Playlist Anda</h3>
-                  </div>
-                  <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-gray-400" x-text="playlist.length + ' Lagu'"></span>
-              </div>
-
-              <div class="overflow-y-auto custom-scrollbar p-2 space-y-1">
-                  <template x-if="playlist.length === 0">
-                      <div class="py-10 text-center text-gray-500 text-xs">
-                          Playlist kosong
-                      </div>
-                  </template>
+             {{-- Mini Playlist Overlay --}}
+             <div class="absolute bottom-40 left-1/2 -translate-x-1/2 w-80 bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[120] overflow-hidden flex flex-col max-h-[70vh] transition-opacity duration-300"
+                  x-show="showMiniPlaylist"
+                  :class="showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'"
+                  x-transition:enter="transition ease-out duration-300 transform"
+                  x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                  x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                  x-transition:leave="transition ease-[cubic-bezier(0.4,0,0.2,1)] duration-200 transform"
+                  x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                  x-transition:leave-end="opacity-0 translate-y-2 scale-95">
                   
-                  <template x-for="(item, index) in playlist" :key="item.id || item.judul">
-                      <div class="group flex items-center gap-3 p-2 rounded-lg transition-colors cursor-move active:cursor-grabbing hover:bg-white/5 relative"
-                           :class="[(currentSong && currentSong.judul === item.judul) ? 'bg-[#D0B75B]/10 border border-[#D0B75B]/20' : 'border border-transparent', draggingIndex === index ? 'opacity-50 bg-white/5' : '']"
-                           draggable="true"
-                           @dragstart="handleDragStart($event, index)"
-                           @dragenter="handleDragEnter(index)"
-                           @dragover.prevent="handleDragOver($event)"
-                           @drop="handleDrop($event)"
-                           @dragend="handleDragEnd()"
-                           @click="playSong(item, 'playlist')">
-                           
-                           <div class="w-6 text-center text-xs font-bold text-gray-500" 
-                                :class="(currentSong && currentSong.judul === item.judul) ? 'text-[#D0B75B]' : ''"
-                                x-text="index + 1"></div>
-                           
-                           <div class="flex-1 min-w-0">
-                               <h4 class="text-xs font-bold text-white truncate" 
-                                   :class="(currentSong && currentSong.judul === item.judul) ? 'text-[#D0B75B]' : ''"
-                                   x-text="item.judul"></h4>
-                               <p class="text-[10px] text-gray-500 truncate" x-text="item.artis"></p>
-                           </div>
+                  <div class="p-3 border-b border-white/10 flex items-center justify-between bg-[#121212]/80">
+                      <div class="flex items-center gap-2">
+                           <i data-lucide="list-music" class="w-4 h-4 text-[#D0B75B]"></i>
+                           <h3 class="font-bold text-white text-sm">Playlist</h3>
+                      </div>
+                      <div class="flex items-center gap-2">
+                          <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-gray-400" x-text="playlist.length + ' Lagu'"></span>
+                          <button @click="showMiniPlaylist = false" class="text-gray-400 hover:text-white p-1">
+                              <i data-lucide="x" class="w-4 h-4"></i>
+                          </button>
+                      </div>
+                  </div>
 
-                           <div class="flex items-center gap-1">
-                               {{-- Move Controls --}}
-                               <template x-if="!currentSong || currentSong.judul !== item.judul">
-                                   <div class="flex items-center gap-1 mr-1">
-                                       <button @click.stop="pinToTop(index)" 
-                                               class="text-gray-500 hover:text-[#D0B75B] disabled:opacity-30 disabled:hover:text-gray-500"
-                                               :disabled="index === 0"
-                                               title="Pin to Top">
-                                           <i data-lucide="pin" class="w-3 h-3"></i>
-                                       </button>
-                                       <div class="flex flex-col gap-0.5">
-                                           <button @click.stop="moveInPlaylist(index, -1)" 
-                                                   class="text-gray-500 hover:text-[#D0B75B] disabled:opacity-30 disabled:hover:text-gray-500"
-                                                   :disabled="index === 0">
-                                               <i data-lucide="chevron-up" class="w-3 h-3"></i>
-                                           </button>
-                                           <button @click.stop="moveInPlaylist(index, 1)" 
-                                                   class="text-gray-500 hover:text-[#D0B75B] disabled:opacity-30 disabled:hover:text-gray-500"
-                                                   :disabled="index === playlist.length - 1">
-                                               <i data-lucide="chevron-down" class="w-3 h-3"></i>
-                                           </button>
-                                       </div>
-                                   </div>
-                               </template>
+                  <div class="overflow-y-auto custom-scrollbar p-2 space-y-1">
+                      <template x-if="playlist.length === 0">
+                          <div class="py-8 text-center text-gray-500 text-xs">
+                              Playlist kosong
+                          </div>
+                      </template>
+                      
+                      <template x-for="(item, index) in playlist" :key="item.id || item.judul">
+                          <div class="group flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer hover:bg-white/5 relative"
+                               :class="(currentSong && currentSong.judul === item.judul) ? 'bg-[#D0B75B]/10 border border-[#D0B75B]/20' : 'border border-transparent'"
+                               @click="playSong(item, 'playlist')">
+                               
+                               <div class="w-5 text-center text-xs font-bold text-gray-500" 
+                                    :class="(currentSong && currentSong.judul === item.judul) ? 'text-[#D0B75B]' : ''"
+                                    x-text="index + 1"></div>
+                               
+                               <div class="flex-1 min-w-0">
+                                   <h4 class="text-xs font-bold text-white truncate" 
+                                       :class="(currentSong && currentSong.judul === item.judul) ? 'text-[#D0B75B]' : ''"
+                                       x-text="item.judul"></h4>
+                                   <p class="text-[10px] text-gray-500 truncate" x-text="item.artis"></p>
+                               </div>
 
-                               <div class="text-[10px] font-bold tracking-wider" 
-                                    :class="(currentSong && currentSong.judul === item.judul) ? 'text-[#D0B75B]' : 'text-gray-600'">
+                               <div class="flex items-center gap-1 shrink-0">
                                    <template x-if="currentSong && currentSong.judul === item.judul">
-                                       <span>PLAYING</span>
+                                       <span class="text-[9px] font-bold text-[#D0B75B] tracking-wider">▶ NOW</span>
                                    </template>
                                    <template x-if="!currentSong || currentSong.judul !== item.judul">
-                                       <button @click.stop="removeFromPlaylist(index)" class="hover:text-red-500 transition-colors p-1">
+                                       <button @click.stop="removeFromPlaylist(index)" class="text-gray-600 hover:text-red-500 transition-colors p-1">
                                            <i data-lucide="trash-2" class="w-3 h-3"></i>
                                        </button>
                                    </template>
                                </div>
-                           </div>
-                      </div>
-                  </template>
-              </div>
-         </div>
-
-
-
-         {{-- Bottom Controls --}}
-         <div class="absolute bottom-0 left-0 right-0 px-8 pb-8 pt-32 z-[110] bg-gradient-to-t from-black/95 via-black/80 to-transparent flex flex-col gap-6 transition-opacity duration-300"
-              :class="showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'">
-             
-             {{-- Progress Bar --}}
-             <div class="w-full relative group/progress cursor-pointer h-4 flex items-center z-50"
-                  @click="handleProgressClick($event)"
-                  @mousedown="handleProgressMouseDown($event)"
-                  @mousemove="handleProgressMove($event)"
-                  @mouseup="handleProgressMouseUp($event)"
-                  @mouseleave="handleProgressLeave($event)">
-                  {{-- Background Track --}}
-                  <div class="absolute inset-x-0 h-1 bg-white/20 rounded-full overflow-hidden pointer-events-none">
-                      {{-- Buffered --}}
-                      <div class="absolute top-0 left-0 h-full bg-white/30 transition-all duration-300 ease-out" 
-                           :style="`width: ${(playerState.buffered / (playerState.duration || 1)) * 100}%`"></div>
-                      {{-- Played --}}
-                      <div class="h-full bg-red-600 relative" :style="`width: ${(playerState.currentTime / (playerState.duration || 1)) * 100}%`"></div>
-                  </div>
-                  {{-- Thumb (Dot) --}}
-                  <div class="absolute h-2.5 w-2.5 bg-red-600 rounded-full shadow-md pointer-events-none -translate-x-1/2 top-1/2 -translate-y-1/2 transition-all duration-150 group-hover/progress:h-3 group-hover/progress:w-3"
-                       :style="`left: ${(playerState.currentTime / (playerState.duration || 1)) * 100}%`"></div>
-                  
-                   {{-- Hover Tooltip --}}
-                   <div class="absolute -top-10 -translate-x-1/2 bg-black border border-white/20 rounded-lg shadow-xl overflow-hidden flex flex-col items-center pointer-events-none z-30"
-                        x-show="playerState.hoverTime !== null"
-                        style="display: none;" 
-                        :style="`left: ${playerState.hoverX}px`">
-                       
-                       {{-- Time Text Only --}}
-                       <div class="bg-black/90 w-full text-center px-3 py-1.5 rounded min-w-[60px]">
-                           <span class="text-white text-xs font-bold font-mono" x-text="formatSeconds(playerState.hoverTime)"></span>
-                       </div>
-                   </div>
-             </div>
-
-             <div class="flex items-center justify-between">
-                 {{-- Left Controls --}}
-                 <div class="flex items-center gap-6">
-                     {{-- Play/Pause --}}
-                     <button @click="togglePlay" class="text-white hover:text-[#D0B75B] transition-colors relative w-8 h-8 flex items-center justify-center">
-                         <span x-show="playerState.playing" style="display: none;">
-                             <i data-lucide="pause" class="w-8 h-8 fill-white"></i>
-                         </span>
-                         <span x-show="!playerState.playing">
-                             <i data-lucide="play" class="w-8 h-8 fill-white"></i>
-                         </span>
-                     </button>
-                     
-                     {{-- Rewind --}}
-                     {{-- Rewind --}}
-                     <button @click="skipBackward()" class="text-gray-400 hover:text-white transition-colors relative group/rewind p-2">
-                         <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
-                         <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold pt-1 select-none">10</span>
-                     </button>
-                     
-                     {{-- Forward --}}
-                     <button @click="skipForward()" class="text-gray-400 hover:text-white transition-colors relative group/ff p-2">
-                         <i data-lucide="rotate-cw" class="w-6 h-6"></i>
-                         <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold pt-1 select-none">10</span>
-                     </button>
-                     
-                     {{-- Volume --}}
-                     <div x-data="{ vol: 1, muted: false, showVol: false }" 
-                          class="relative flex items-center justify-center p-2"
-                          @mouseenter="showVol = true" 
-                          @mouseleave="showVol = false">
-                         
-                         <button @click="muted = !muted; $refs.mainVideo.muted = muted" class="text-gray-400 hover:text-white transition-colors">
-                             <i x-show="muted || vol == 0" data-lucide="volume-x" class="w-6 h-6"></i>
-                             <i x-show="!muted && vol > 0 && vol < 0.5" data-lucide="volume-1" class="w-6 h-6"></i>
-                             <i x-show="!muted && vol >= 0.5" data-lucide="volume-2" class="w-6 h-6"></i>
-                         </button>
-
-                         {{-- Vertical Slider Popup --}}
-                         <div class="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-10 h-32 bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col items-center justify-center shadow-2xl z-[120]"
-                              x-show="showVol"
-                              x-transition:enter="transition ease-out duration-200"
-                              x-transition:enter-start="opacity-0 translate-y-4 scale-95"
-                              x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                              x-transition:leave="transition ease-in duration-150"
-                              x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                              x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-                              style="display: none;">
-                              
-                              <div class="h-24 w-1.5 relative bg-white/20 rounded-full">
-                                   {{-- Red Fill --}}
-                                   <div class="absolute bottom-0 left-0 w-full bg-red-600 rounded-full pointer-events-none transition-all duration-75"
-                                        :style="`height: ${muted ? 0 : vol * 100}%`"></div>
-                                   
-                                   {{-- Thumb --}}
-                                   <div class="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-75"
-                                         :style="`bottom: calc(${muted ? 0 : vol * 100}% - 6px)`"></div>
-                                   
-                                   {{-- Input (Rotated) --}}
-                                   <input type="range" min="0" max="1" step="0.05" x-model.number="vol"
-                                          @input="$refs.mainVideo.volume = vol; muted = false"
-                                          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-10 opacity-0 cursor-pointer -rotate-90 origin-center">
-                              </div>
-                         </div>
-                     </div>
-
-                     {{-- Skip Back --}}
-                     <button @click="playPrevious()" class="text-white hover:text-[#D0B75B] transition-colors">
-                         <i data-lucide="skip-back" class="w-6 h-6 fill-white"></i>
-                     </button>
-                 </div>
-
-                 {{-- Now Playing Info (Center) --}}
-                 <div class="flex-1 flex items-center justify-center min-w-0 px-4" x-show="currentSong">
-                     <div class="text-center min-w-0 max-w-xs">
-                         <h3 class="text-white font-bold text-sm truncate leading-tight" x-text="currentSong?.judul"></h3>
-                         <p class="text-gray-400 text-[11px] truncate mt-0.5" x-text="currentSong?.artis || 'Unknown Artist'"></p>
-                     </div>
-                 </div>
-
-                 {{-- Right Controls --}}
-                 <div class="flex items-center gap-6">
-                     <span class="text-sm font-mono font-bold text-gray-400">
-                         <span x-text="formatSeconds(playerState.currentTime)">0:00</span> / 
-                         <span x-text="formatSeconds(playerState.duration)">0:00</span>
-                     </span>
-                     
-                     {{-- Skip --}}
-                     <button @click="playNext()" class="text-white hover:text-[#D0B75B] transition-colors">
-                         <i data-lucide="skip-forward" class="w-6 h-6 fill-white"></i>
-                     </button>
-                     
-                     {{-- Playlist --}}
-                     <button @click="showMiniPlaylist = !showMiniPlaylist" 
-                             class="transition-colors relative"
-                             :class="showMiniPlaylist ? 'text-[#D0B75B]' : 'text-gray-400 hover:text-white'">
-                         <i data-lucide="list-music" class="w-6 h-6"></i>
-                         <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#D0B75B] rounded-full" x-show="playlist.length > 0"></span>
-                     </button>
-                     
-                      {{-- Settings / Gear --}}
-                      <div class="relative" @click.outside="showSpeedModal = false">
-                          <button @click="showSpeedModal = !showSpeedModal; if(showSpeedModal) showMiniPlaylist = false" 
-                                  class="text-gray-400 hover:text-white transition-colors relative flex items-center justify-center p-2">
-                              <i data-lucide="settings" class="w-6 h-6"></i>
-                          </button>
-
-                          {{-- Audio Settings Popover --}}
-                          <div class="absolute bottom-full right-0 -mr-12 mb-6 w-80 bg-[#121212] border border-white/10 rounded-2xl shadow-2xl p-4 z-[9999]"
-                               x-show="showSpeedModal"
-                               x-transition:enter="transition ease-out duration-200"
-                               x-transition:enter-start="opacity-0 translate-y-2 scale-95"
-                               x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                               x-transition:leave="transition ease-in duration-150"
-                               x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                               x-transition:leave-end="opacity-0 translate-y-2 scale-95"
-                               style="display: none;">
-                               
-                               <div class="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
-                                   <h3 class="text-xs font-bold text-white tracking-widest uppercase">Audio Settings</h3>
-                                   <button @click="playerState.transpose = 0; playerState.pitch = 0; setSpeed(1)" 
-                                           x-show="playerState.transpose !== 0 || playerState.pitch !== 0 || playerState.playbackRate !== 1"
-                                           class="text-[10px] text-[#D0B75B] hover:text-white transition-colors font-bold">RESET SEMUA</button>
-                               </div>
-
-                               <div class="grid gap-4">
-                                   {{-- Transpose --}}
-                                   <div class="bg-[#1a1a1a] rounded-lg p-3 border border-white/5">
-                                       <div class="flex justify-between items-center mb-2">
-                                           <span class="text-xs font-bold text-white">Transpose</span>
-                                           <div class="flex items-center gap-2">
-                                                <button @click="playerState.transpose = 0" 
-                                                        x-show="playerState.transpose !== 0"
-                                                        class="text-gray-500 hover:text-white transition-colors"
-                                                        title="Reset Transpose">
-                                                    <i data-lucide="refresh-ccw" class="w-3 h-3"></i>
-                                                </button>
-                                                <span class="text-xs font-mono font-bold text-[#D0B75B]" x-text="playerState.transpose > 0 ? '+' + playerState.transpose : playerState.transpose"></span>
-                                           </div>
-                                       </div>
-                                       <div class="flex items-center gap-3">
-                                           <button @click="playerState.transpose > -12 ? playerState.transpose-- : null" class="text-gray-400 hover:text-white"><i data-lucide="minus" class="w-4 h-4"></i></button>
-                                           <input type="range" min="-12" max="12" step="1" x-model.number="playerState.transpose" class="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#D0B75B]">
-                                           <button @click="playerState.transpose < 12 ? playerState.transpose++ : null" class="text-gray-400 hover:text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
-                                       </div>
-                                   </div>
-
-                                   {{-- Pitch --}}
-                                   <div class="bg-[#1a1a1a] rounded-lg p-3 border border-white/5">
-                                       <div class="flex justify-between items-center mb-2">
-                                           <span class="text-xs font-bold text-white">Pitch</span>
-                                           <div class="flex items-center gap-2">
-                                                <button @click="playerState.pitch = 0" 
-                                                        x-show="playerState.pitch != 0"
-                                                        class="text-gray-500 hover:text-white transition-colors"
-                                                        title="Reset Pitch">
-                                                    <i data-lucide="refresh-ccw" class="w-3 h-3"></i>
-                                                </button>
-                                                <span class="text-xs font-mono font-bold text-[#D0B75B]" x-text="Number(playerState.pitch).toFixed(2) + ' Hz'"></span>
-                                           </div>
-                                       </div>
-                                       <div class="flex items-center gap-3">
-                                           <button @click="(playerState.pitch = Math.max(-1, parseFloat(playerState.pitch) - 0.05)).toFixed(2)" class="text-gray-400 hover:text-white"><i data-lucide="minus" class="w-4 h-4"></i></button>
-                                           <input type="range" min="-1" max="1" step="0.05" x-model.number="playerState.pitch" class="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#D0B75B]">
-                                           <button @click="(playerState.pitch = Math.min(1, parseFloat(playerState.pitch) + 0.05)).toFixed(2)" class="text-gray-400 hover:text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
-                                       </div>
-                                   </div>
-
-                                   {{-- Speed --}}
-                                   <div class="bg-[#1a1a1a] rounded-lg p-3 border border-white/5">
-                                       <div class="flex justify-between items-center mb-2">
-                                            <span class="text-xs font-bold text-white">Speed</span>
-                                            <div class="flex items-center gap-2">
-                                                <button @click="setSpeed(1)" 
-                                                        x-show="playerState.playbackRate !== 1"
-                                                        class="text-gray-500 hover:text-white transition-colors"
-                                                        title="Reset Speed">
-                                                    <i data-lucide="refresh-ccw" class="w-3 h-3"></i>
-                                                </button>
-                                                <div class="flex items-center gap-1">
-                                                    <span class="text-xs font-mono font-bold text-[#D0B75B]" x-text="Math.round(playerState.playbackRate * 100) + '%'"></span>
-                                                    <span class="text-[10px] text-gray-500 font-mono">Tempo bpm</span>
-                                                </div>
-                                            </div>
-                                       </div>
-                                       <div class="flex items-center gap-3">
-                                           <button @click="setSpeed(Number(Math.max(0.2, playerState.playbackRate - 0.1).toFixed(1)))" class="text-gray-400 hover:text-white"><i data-lucide="minus" class="w-4 h-4"></i></button>
-                                           <input type="range" min="0.2" max="4.0" step="0.1" 
-                                                  :value="playerState.playbackRate" 
-                                                  @input="setSpeed($event.target.value)"
-                                                  class="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#D0B75B]">
-                                           <button @click="setSpeed(Number(Math.min(4.0, playerState.playbackRate + 0.1).toFixed(1)))" class="text-gray-400 hover:text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
-                                       </div>
-                                   </div>
-                               </div>
                           </div>
-                      </div>
-                     
-                     {{-- Fullscreen --}}
-                     <button @click="toggleFullscreen" class="text-gray-400 hover:text-white transition-colors">
-                         <i data-lucide="scan" class="w-6 h-6"></i>
-                     </button>
-                 </div>
+                      </template>
+                  </div>
              </div>
-         </div>
-         
-         {{-- Watermark Background --}}
 
-    </div>
+         </div>
     </div>
 
     {{-- Playlist Sidebar --}}
@@ -1491,11 +1245,14 @@
     </style>
     <script>
         lucide.createIcons();
+        // YouTube IFrame Player API
+        let ytPlayer = null;
+        window.onYouTubeIframeAPIReady = function() {
+            console.log('YouTube IFrame API Ready');
+        };
+
         document.addEventListener('alpine:init', () => {
             Alpine.data('roomDashboard', () => {
-                let pitchShiftNode = null;
-                let toneSource = null;
-
                 return {
                 activePage: 'home',
                 activeCategory: 'All', // Added activeCategory to fix ReferenceError
@@ -1525,6 +1282,7 @@
                 showConfirmation: false,
                 showMiniPlaylist: false,
                 isPlayerOpen: false, // New state for player visibility
+                isFullscreen: false,
 
                 // Payment Method State
                 paymentMethod: null, // 'open_billing' or 'payment_gateway'
@@ -1559,30 +1317,13 @@
                 
                 playerState: {
                     playing: false,
-                    currentTime: 0,
-                    duration: 0,
-                    buffered: 0,
                     loading: false,
-                    playbackRate: 1,
-                    transpose: 0,
-                    pitch: 0,
-                    hoverTime: null,
-                    hoverX: 0,
-                    lastHoverTime: 0,
-                    spriteX: 0,
-                    spriteY: 0,
-                    spriteUrl: null,
-                    spriteLoaded: false,
-                    previewReady: false,
-                    isSeeking: false
                 },
                 
                 showControls: true,
                 controlsTimeout: null,
-                previewHoverTimeout: null,
                 showReportModal: false,
-                // showSpeedModal: false, // Local state used instead or reused appropriately
-                showSpeedModal: false, // Keeping it for compatibility
+                showSpeedModal: false,
                 reportType: null,
                 reportNote: '',
                 
@@ -1711,22 +1452,12 @@
                 },
                 
                 playSong(song, mode = 'single') {
-                    // Stop current HLS if any
-                    if (this.hlsInstance) {
-                        this.hlsInstance.destroy();
-                        this.hlsInstance = null;
-                    }
-                    if (this.previewHls) {
-                        this.previewHls.destroy();
-                        this.previewHls = null;
-                    }
-
                     console.log('Playing:', song);
+                    
                     if(mode === 'playlist') {
                         this.currentSong = song;
-                        this.showMiniPlaylist = true; // Auto-show playlist
+                        this.showMiniPlaylist = true;
                     } else {
-                        // Check if exists
                         const exists = this.playlist.find(s => s.judul === song.judul);
                         if (!exists) {
                             this.playlist.push(song);
@@ -1736,217 +1467,154 @@
                     }
 
                     this.playerState.loading = true;
-                    // Set duration instantly from metadata if available
-                    this.playerState.duration = song.durasi || 0;
-                    this.handleActivity(); // Init controls visibility
-
+                    this.handleActivity();
                     this.playerState.playing = true;
                     this.isPlaying = true;
-                    this.isPlayerOpen = true; // Open player overlay
-                    this.setSpeed(1); // Reset speed to normal
-
-                    // Init Audio Context for Pitch Shift
-                    this.initAudio();
+                    this.isPlayerOpen = true;
 
                     this.$nextTick(() => {
-                        const video = this.$refs.mainVideo;
-                        const preview = this.$refs.previewVideo;
-                        if (!video) return;
-                        
-                        // Reset preview src to avoid lingering frames
-                        if(preview) {
-                            preview.removeAttribute('src'); 
-                            preview.load();
-                        }
-
-                        // URL Construction logic - Use streaming route for Range request support (seeking)
-                        let url = song.url || song.video_preview;
-                        
-                        if (!url) {
-                            console.error('No URL for song:', song);
+                        const videoId = song.youtube_id;
+                        if (!videoId) {
+                            console.error('No youtube_id for song:', song);
                             this.playerState.loading = false;
                             return;
                         }
 
-                        // Extract just the filename from the path for streaming route
-                        let filename = url;
-                        // Remove /assets/lagu/ prefix if present
-                        if (filename.startsWith('/assets/lagu/')) {
-                            filename = filename.substring('/assets/lagu/'.length);
-                        }
-                        
-                        // Use streaming route for proper Range request support (required for seeking)
-                        url = '/stream/video/' + encodeURIComponent(filename);
+                        const self = this;
 
-                        // Helper to setup fallback video
-                        const setupFallbackPreview = () => {
-                             console.log('Setting up fallback video preview...');
-                             this.playerState.spriteLoaded = false;
-                             
-                             this.$nextTick(() => {
-                                 const preview = this.$refs.previewVideo;
-                                 if(!preview) return;
-
-                                 // Reset
-                                 preview.innerHTML = '';
-                                 preview.removeAttribute('src');
-                                 
-                                 // HLS for Preview?
-                                 if (Hls.isSupported() && (url.includes('.m3u8') || song.is_hls)) {
-                                     if(this.previewHls) this.previewHls.destroy();
-                                     this.previewHls = new Hls();
-                                     this.previewHls.loadSource(url);
-                                     this.previewHls.attachMedia(preview);
-                                 } else if (preview.canPlayType('application/vnd.apple.mpegurl') && (url.includes('.m3u8') || song.is_hls)) {
-                                     preview.src = url;
-                                 } else {
-                                     preview.src = url;
-                                 }
-                                 
-                                 // Check readiness for fallback
-                                 preview.oncanplay = () => {
-                                     this.playerState.previewReady = true;
-                                 };
-                                 // If already ready (cached)
-                                 if (preview.readyState >= 2) {
-                                     this.playerState.previewReady = true;
-                                 }
-                                 
-                                 preview.load();
-                             });
-                        };
-
-                        // Determine Sprite URL locally first (don't set state yet to avoid 404s)
-                        let potentialSpriteUrl = null;
-                        try {
-                            const filename = url.substring(url.lastIndexOf('/') + 1);
-                            const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-                            const baseUrl = url.substring(0, url.lastIndexOf('/'));
-                            potentialSpriteUrl = `${baseUrl}/${nameWithoutExt}_sprite.jpg`;
-                        } catch (e) {
-                            console.error('Error parsing sprite url', e);
-                        }
-                        
-                        // Reset state
-                        this.playerState.spriteUrl = null;
-                        this.playerState.spriteLoaded = false;
-                        this.playerState.previewReady = false; // Reset ready state
-
-                        // Feature detection: Try to load sprite
-                        if(potentialSpriteUrl) {
-                            const img = new Image();
-                            img.onload = () => {
-                                console.log('Sprite loaded successfully');
-                                this.playerState.spriteUrl = potentialSpriteUrl; // Only set if valid
-                                this.playerState.spriteLoaded = true;
-                                this.playerState.previewReady = true; // Sprite is ready!
-                            };
-                            img.onerror = () => {
-                                console.warn('Sprite failed/missing. Using video fallback.');
-                                this.playerState.spriteUrl = null;
-                                this.playerState.spriteLoaded = false;
-                                setupFallbackPreview();
-                            };
-                            img.src = potentialSpriteUrl;
-                        } else {
-                             setupFallbackPreview();
+                        // If player already exists, just load new video
+                        if (ytPlayer && ytPlayer.loadVideoById) {
+                            try {
+                                ytPlayer.loadVideoById(videoId);
+                                self.playerState.loading = false;
+                                return;
+                            } catch(e) {
+                                // Player may have been destroyed, recreate below
+                            }
                         }
 
-                        // Debug log
-                        console.log('Loading video from:', url);
-                        console.log('Attempting to load sprite from:', potentialSpriteUrl);
-                        
-                        // Main Video Setup
-                        if (Hls.isSupported() && (url.includes('.m3u8') || song.is_hls)) {
-                            // Main Video HLS
-                            this.hlsInstance = new Hls();
-                            this.hlsInstance.loadSource(url);
-                            this.hlsInstance.attachMedia(video);
-                            this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                                video.play()
-                                    .then(() => {
-                                        this.playerState.loading = false;
-                                    })
-                                    .catch(e => {
-                                        if (e.name !== 'AbortError') console.error("Auto-play blocked", e);
-                                    });
-                            });
-                            this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-                                console.error('HLS Error:', data);
-                                if(data.fatal) {
-                                   this.playerState.loading = false;
+                        // Destroy existing player if any
+                        if (ytPlayer && ytPlayer.destroy) {
+                            try { ytPlayer.destroy(); } catch(e) {}
+                            ytPlayer = null;
+                        }
+
+                        // Remove existing container to avoid conflicts
+                        let existingContainer = document.getElementById('yt-player-container');
+                        if (existingContainer) {
+                            existingContainer.remove();
+                        }
+
+                        // Build manual iframe to bypass Chrome's block on allowfullscreen
+                        const iframe = document.createElement('iframe');
+                        iframe.id = 'yt-player-container';
+                        iframe.className = 'w-full h-full';
+                        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
+                        iframe.setAttribute('allowfullscreen', '1');
+                        // Set src manually so YT API attaches to it
+                        iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=1&rel=0&showinfo=0&modestbranding=1&iv_load_policy=3&fs=0&playsinline=1`;
+
+                        // Ensure container exists
+                        const playerContainer = this.$refs.playerContainer;
+                        if (playerContainer) {
+                            const inner = playerContainer.querySelector('.relative');
+                            if (inner) {
+                                inner.prepend(iframe);
+                            }
+                        }
+
+                        // Attach YouTube Player using IFrame API
+                        ytPlayer = new YT.Player('yt-player-container', {
+                            events: {
+                                onReady: function(event) {
+                                    self.playerState.loading = false;
+                                    self.playerState.playing = true;
+                                    event.target.playVideo();
+                                    self.$nextTick(() => lucide.createIcons());
+                                },
+                                onStateChange: function(event) {
+                                    if (event.data === YT.PlayerState.ENDED) {
+                                        self.handleEnded();
+                                    } else if (event.data === YT.PlayerState.PLAYING) {
+                                        self.playerState.playing = true;
+                                        self.playerState.loading = false;
+                                    } else if (event.data === YT.PlayerState.PAUSED) {
+                                        self.playerState.playing = false;
+                                    } else if (event.data === YT.PlayerState.BUFFERING) {
+                                        self.playerState.loading = true;
+                                    }
+                                },
+                                onError: function(event) {
+                                    console.error('YouTube Player Error:', event.data);
+                                    self.playerState.loading = false;
+                                    self.showToastNotification('Video tidak dapat diputar');
                                 }
-                            });
-
-                        } else if (video.canPlayType('application/vnd.apple.mpegurl') && (url.includes('.m3u8') || song.is_hls)) {
-                            // Native HLS (Safari)
-                            video.src = url;
-                            video.addEventListener('loadedmetadata', () => {
-                                video.play()
-                                    .then(() => {
-                                        this.playerState.loading = false;
-                                    })
-                                    .catch(e => {
-                                         if (e.name !== 'AbortError') console.error("Auto-play blocked", e);
-                                    });
-                            }, { once: true });
-                        } else {
-                            // Standard MP4
-                            video.src = url;
-                            
-                            // Important: Wait for main video to be ready
-                            video.play()
-                                .then(() => {
-                                     this.playerState.loading = false;
-                                })
-                                .catch(e => {
-                                    if (e.name !== 'AbortError') console.error("Auto-play blocked", e);
-                                });
-                        }
+                            }
+                        });
                     });
                 },
 
                 togglePlay() {
-                    const video = this.$refs.mainVideo;
-                    if(!video) return;
-                    if(video.paused) {
-                        video.play();
-                        this.playerState.playing = true;
-                    } else {
-                        video.pause();
-                        this.playerState.playing = false;
+                    if (ytPlayer && ytPlayer.getPlayerState) {
+                        const state = ytPlayer.getPlayerState();
+                        if (state === YT.PlayerState.PLAYING) {
+                            ytPlayer.pauseVideo();
+                        } else {
+                            ytPlayer.playVideo();
+                        }
                     }
                 },
 
                 closePlayer() {
-                    const video = this.$refs.mainVideo;
-                    if(video) video.pause();
-                    if(this.hlsInstance) {
-                        this.hlsInstance.destroy();
-                        this.hlsInstance = null;
+                    if (ytPlayer && ytPlayer.destroy) {
+                        try { ytPlayer.destroy(); } catch(e) {}
+                        ytPlayer = null;
                     }
-                    if (this.previewHls) {
-                        this.previewHls.destroy();
-                        this.previewHls = null;
-                    }
-                    setTimeout(() => {
-                        const video = this.$refs.mainVideo;
-                        if(video) video.pause();
-                        if(this.hlsInstance) {
-                            this.hlsInstance.destroy();
-                            this.hlsInstance = null;
+
+                    // Recreate container div
+                    this.$nextTick(() => {
+                        const container = this.$refs.playerContainer;
+                        if (container) {
+                            const inner = container.querySelector('.relative');
+                            let existingContainer = document.getElementById('yt-player-container');
+                            if (existingContainer) {
+                                existingContainer.remove();
+                            }
+                            if (inner) {
+                                const div = document.createElement('div');
+                                div.id = 'yt-player-container';
+                                div.className = 'w-full h-full';
+                                inner.prepend(div);
+                            }
                         }
-                        if (this.previewHls) {
-                             this.previewHls.destroy();
-                             this.previewHls = null;
-                        }
-                    }, 100);
+                    });
                     
                     this.playerState.playing = false;
                     this.isPlaying = false;
                     this.currentSong = null;
                     this.showMiniPlaylist = false;
-                    this.isPlayerOpen = false; // Close player overlay
+                    this.isPlayerOpen = false;
+                    
+                    if (this.isFullscreen) {
+                        this.toggleFullScreen();
+                    }
+                },
+
+                toggleFullScreen() {
+                    const doc = window.document;
+                    const docEl = doc.documentElement;
+                
+                    const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+                    const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+                
+                    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                        requestFullScreen.call(docEl);
+                        this.isFullscreen = true;
+                    } else {
+                        cancelFullScreen.call(doc);
+                        this.isFullscreen = false;
+                    }
+                    this.refreshIcons();
                 },
 
                 handleActivity() {
@@ -1961,6 +1629,15 @@
                             this.showControls = false;
                         }
                     }, 3000); // Sedikit diperlama biar nyaman
+                },
+
+                hideControls() {
+                    // Sembunyikan semua kontrol saat mouse keluar dari area layar
+                    if (this.playerState.playing && this.draggingIndex === null) {
+                        this.showControls = false;
+                        this.showMiniPlaylist = false;
+                        if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
+                    }
                 },
                 
                 addToPlaylist(song, event) {
@@ -2239,211 +1916,14 @@
                     if (currentIndex > 0) {
                         this.playSong(this.playlist[currentIndex - 1], 'playlist');
                     } else {
-                        // Restart current song
-                        const video = this.$refs.mainVideo;
-                        if(video) video.currentTime = 0;
-                    }
-                },
-
-                setSpeed(rate) {
-                    this.playerState.playbackRate = rate;
-                    if(this.$refs.mainVideo) {
-                        this.$refs.mainVideo.playbackRate = rate;
-                    }
-                },    
-
-                skipForward() {
-                    const video = this.$refs.mainVideo;
-                    if (video) {
-                        video.currentTime = Math.min(video.currentTime + 10, video.duration);
-                        this.playerState.currentTime = video.currentTime; // Instant update UI
-                    }
-                },
-
-                skipBackward() {
-                     const video = this.$refs.mainVideo;
-                     if (video) {
-                         video.currentTime = Math.max(video.currentTime - 10, 0);
-                         this.playerState.currentTime = video.currentTime; // Instant update UI
-                     }
-                },
-                
-                updateProgress() {
-                    const video = this.$refs.mainVideo;
-                    if(video) {
-                        // Don't overwrite currentTime while user is seeking or video is mid-seek
-                        if (!this.playerState.isSeeking && !video.seeking) {
-                            this.playerState.currentTime = video.currentTime;
-                        }
-                        // Use actual video duration for progress bar (metadata durasi may differ from actual file)
-                        this.playerState.duration = (video.duration && isFinite(video.duration)) ? video.duration : (this.currentSong && this.currentSong.durasi ? this.currentSong.durasi : 0);
-                        if (!video.paused) this.playerState.playing = true;
-
-                        // Calculate Buffered
-                        if (video.buffered.length > 0) {
-                            for (let i = 0; i < video.buffered.length; i++) {
-                                if (video.buffered.start(i) <= video.currentTime && video.buffered.end(i) >= video.currentTime) {
-                                    this.playerState.buffered = video.buffered.end(i);
-                                    break;
-                                }
-                            }
-                            // Fallback if current time not in buffered range (e.g. seeking ahead)
-                             if (video.currentTime > this.playerState.buffered) {
-                                 this.playerState.buffered = video.buffered.end(video.buffered.length - 1);
-                             }
+                        // Restart current song via YouTube API
+                        if (ytPlayer && ytPlayer.seekTo) {
+                            ytPlayer.seekTo(0, true);
                         }
                     }
                 },
 
-                formatSeconds(seconds) {
-                    if (!seconds && seconds !== 0) return '0:00';
-                    const h = Math.floor(seconds / 3600);
-                    const m = Math.floor((seconds % 3600) / 60);
-                    const s = Math.floor(seconds % 60);
-                    if (h > 0) {
-                        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                    }
-                    return `${m}:${s.toString().padStart(2, '0')}`;
-                },
 
-                handleProgressHover(e) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const width = rect.width;
-                    const percent = Math.max(0, Math.min(1, x / width));
-                    
-                    this.playerState.hoverX = x;
-                    const hoverTime = percent * (this.playerState.duration || 0);
-                    this.playerState.hoverTime = hoverTime;
-                    this.playerState.lastHoverTime = hoverTime;
-                },
-
-                _getTimeFromEvent(e) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const width = rect.width;
-                    const percent = Math.max(0, Math.min(1, x / width));
-                    return percent * (this.playerState.duration || 0);
-                },
-
-                handleProgressClick(e) {
-                    // Only handle click if NOT from a drag operation
-                    if (this._wasDragging) {
-                        this._wasDragging = false;
-                        return;
-                    }
-                    
-                    const time = this._getTimeFromEvent(e);
-                    const video = this.$refs.mainVideo;
-                    if (!video) return;
-
-                    console.log('Seek click:', time.toFixed(1) + 's', 
-                        '| duration:', video.duration.toFixed(1) + 's',
-                        '| seekable:', video.seekable.length > 0 ? video.seekable.end(0).toFixed(1) : 'none');
-                    
-                    if (!isNaN(time) && Number.isFinite(time)) {
-                        this.playerState.isSeeking = true;
-                        this.playerState.currentTime = time;
-                        video.currentTime = time;
-                        
-                        if(video.paused) {
-                            video.play().catch(err => console.log('Play prevented', err));
-                        }
-                        this.playerState.playing = true;
-                        this.playerState.hoverTime = null;
-                    }
-                },
-
-                handleProgressMouseDown(e) {
-                    e.preventDefault();
-                    this.playerState.isSeeking = true;
-                    this._wasDragging = false;
-                    this._progressBarEl = e.currentTarget;
-                    
-                    // Attach global mousemove/mouseup so dragging works even outside the bar
-                    const onMouseMove = (ev) => {
-                        this._wasDragging = true;
-                        const rect = this._progressBarEl.getBoundingClientRect();
-                        const x = ev.clientX - rect.left;
-                        const width = rect.width;
-                        const percent = Math.max(0, Math.min(1, x / width));
-                        const time = percent * (this.playerState.duration || 0);
-                        
-                        this.playerState.currentTime = time;
-                        this.playerState.hoverX = Math.max(0, Math.min(width, x));
-                        this.playerState.hoverTime = time;
-                    };
-                    
-                    const onMouseUp = (ev) => {
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
-                        
-                        const rect = this._progressBarEl.getBoundingClientRect();
-                        const x = ev.clientX - rect.left;
-                        const width = rect.width;
-                        const percent = Math.max(0, Math.min(1, x / width));
-                        const time = percent * (this.playerState.duration || 0);
-                        
-                        console.log('Progress bar seek to:', time, 'seconds');
-                        
-                        const video = this.$refs.mainVideo;
-                        if (video && !isNaN(time) && Number.isFinite(time)) {
-                            this.playerState.currentTime = time;
-                            video.currentTime = time;
-                            // isSeeking stays true until @seeked fires on the video element
-                        }
-                        
-                        this.playerState.hoverTime = null;
-                    };
-                    
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                },
-
-                handleProgressMove(e) {
-                    // Show hover tooltip (only when NOT dragging, drag uses global listeners)
-                    if (!this.playerState.isSeeking) {
-                        this.handleProgressHover(e);
-                    }
-                },
-
-                handleProgressMouseUp(e) {
-                    // Handled by global listener from mousedown
-                },
-
-                handleProgressLeave(e) {
-                    if (!this.playerState.isSeeking) {
-                        this.playerState.hoverTime = null;
-                    }
-                },
-
-                seekToPreview(e) {
-                    let time = this.playerState.hoverTime;
-                    
-                    if (e) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const width = rect.width;
-                        const percent = Math.max(0, Math.min(1, x / width));
-                        time = percent * (this.playerState.duration || 0);
-                    }
-
-                    console.log('Seeking to time:', time);
-                    
-                    if (time !== null && time !== undefined && !isNaN(time)) {
-                        const video = this.$refs.mainVideo;
-                        if(video) {
-                            this.playerState.isSeeking = true;
-                            this.playerState.currentTime = time;
-                            video.currentTime = time;
-                            if(video.paused) {
-                                video.play().catch(e => console.log('Play prevented', e));
-                            }
-                            this.playerState.playing = true;
-                            this.playerState.hoverTime = null;
-                        }
-                    }
-                },
 
                 submitReport(issue, detail = '') {
                     if (!this.currentSong) return;
@@ -2549,115 +2029,7 @@
                     }, 300);
                 },
 
-                // Audio Logic (Tone.js)
-                audioInitialized: false,
 
-                async initAudio() {
-                    const video = this.$refs.mainVideo;
-                    if (!video) return;
-
-                    // 1. Resume Context (User Interaction)
-                    if (Tone.context.state !== 'running') {
-                        try { await Tone.context.resume(); } catch(e) { }
-                    }
-
-                    // 2. Resolve Source
-                    let source = video._toneMediaSource;
-                    let ctx = Tone.context.rawContext;
-
-                    if (source) {
-                         ctx = source.context;
-                         if (ctx.state === 'suspended') {
-                            try { ctx.resume(); } catch(e) {}
-                         }
-                    } else {
-                        try {
-                            source = ctx.createMediaElementSource(video);
-                            video._toneMediaSource = source; 
-                        } catch (e) {
-                            console.warn('Source creation error', e); 
-                            return; 
-                        }
-                    }
-
-                    // 3. Sync Tone Context
-                    // Important: Set Tone context to match the source's native context
-                    if (Tone.context.rawContext !== ctx) {
-                         Tone.setContext(ctx);
-                    }
-
-                    toneSource = source;
-
-                    // 4. Create PitchShift Effect
-                    // Dispose old if context differs
-                    if (pitchShiftNode && pitchShiftNode.context.rawContext !== ctx) {
-                        pitchShiftNode.dispose();
-                        pitchShiftNode = null;
-                    }
-
-                    if (!pitchShiftNode) {
-                         pitchShiftNode = new Tone.PitchShift({
-                            pitch: 0,
-                            windowSize: 0.1,
-                            delayTime: 0,
-                            feedback: 0
-                        }).toDestination();
-                    }
-
-                    // 5. Connect Source -> Effect (Pure Native Connection)
-                    try {
-                        try { source.disconnect(); } catch(e) {}
-
-                        // Driller function to find the first Native AudioNode
-                        const getNativeNode = (obj, depth=0) => {
-                             if (!obj || depth > 4) return null;
-                             // Check for native AudioNode traits
-                             if (obj instanceof AudioNode || (obj.context && obj.connect && obj.numberOfInputs > 0 && !obj.dispose)) {
-                                 return obj;
-                             }
-                             // Drill down common Tone properties
-                             return getNativeNode(obj.input, depth+1) || getNativeNode(obj._gainNode, depth+1);
-                        };
-
-                        const validNativeInput = getNativeNode(pitchShiftNode);
-
-                        if (validNativeInput) {
-                             source.connect(validNativeInput);
-                             console.log('Connected Native Source to:', validNativeInput);
-                             this.audioInitialized = true;
-                             this.updateAudioParams();
-                        } else {
-                             // Absolute fallback: direct to speakers
-                             console.warn('Could not find native input node. Bypassing effects.');
-                             source.connect(ctx.destination);
-                        }
-
-                    } catch (e) {
-                        console.error('Audio Connect Error:', e);
-                        try { source.connect(ctx.destination); } catch(x) {}
-                    }
-                },
-
-                updateAudioParams() {
-                    // 1. Speed (Native Video Feature)
-                    const video = this.$refs.mainVideo;
-                    if (video) {
-                        if (video.playbackRate !== this.playerState.playbackRate) {
-                            video.playbackRate = this.playerState.playbackRate;
-                        }
-                        if (video.preservesPitch === undefined || video.preservesPitch === false) {
-                            video.preservesPitch = true; 
-                        }
-                    }
-
-                    // 2. Pitch/Transpose (Tone.js)
-                    if (pitchShiftNode) {
-                        const totalShift = this.playerState.transpose + this.playerState.pitch;
-                         if (pitchShiftNode.pitch !== totalShift) {
-                            pitchShiftNode.pitch = totalShift;
-                        }
-                    }
-                },
 
                 get currentDetailPrice() {
                     if(!this.detailItem) return 0;
