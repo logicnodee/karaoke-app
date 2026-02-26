@@ -342,124 +342,47 @@ class AdminController extends Controller
     }
 
     private function getMasterLagu() {
-        $path = public_path('assets/lagu');
-        if (!file_exists($path)) {
-            return [];
-        }
-
-        $files = array_diff(scandir($path), ['.', '..']);
-        $songs = [];
-
-        // Map Static Covers for existing artists to keep it pretty
-            $coverMap = [
-            'Billie Eilish' => 'https://i.scdn.co/image/ab67616d0000b273f05db5fcbd06612df388675f',
-            'Justin Bieber' => 'https://i.scdn.co/image/ab67616d0000b273e6dfd1587a829f0ce63a8a9a',
-            'Lana Del Rey' => 'https://i.scdn.co/image/ab67616d0000b273dd1072d733190dfd04bfab72',
-            'Tenxi' => 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/ce/20/92/ce209210-6126-70e6-9907-8890db7aa61a/cover.jpg/1200x1200bf-60.jpg',
-            'Kendis' => 'https://via.placeholder.com/400x400/1e293b/fbbf24?text=KENDIS',
-            'Rihanna' => 'https://i.scdn.co/image/ab67616d0000b2730c4a4b333646548d7c43df16',
+        $youtubeList = [
+            ['judul' => 'Too Late To Be Right', 'artis' => 'Post Malone ft. Justin Bieber', 'youtube_id' => '9d3vyQEpFAM'],
+            ['judul' => 'Best Songs Playlist 2026', 'artis' => 'Justin Bieber', 'youtube_id' => 'D2uFMpvaWpc'],
+            ['judul' => 'Greatest Hits Full Album 2026', 'artis' => 'Justin Bieber', 'youtube_id' => 'bo9MmiQHTYY'],
+            ['judul' => 'Chill Best Songs 2026', 'artis' => 'Justin Bieber', 'youtube_id' => 'TFyJmYy5V1M'],
+            ['judul' => 'Trending Spotify Pop Hits', 'artis' => 'Justin Bieber', 'youtube_id' => 'DBSBflpPx68'],
+            ['judul' => 'Most Popular Billie Eilish Songs', 'artis' => 'Billie Eilish', 'youtube_id' => 'pKfXFHLeR-w'],
+            ['judul' => 'My 5 Best Songs from Billie Eilish', 'artis' => 'Billie Eilish', 'youtube_id' => 'mJT3ubUXF7E'],
+            ['judul' => 'Top 10 Most Streamed Songs (Spotify)', 'artis' => 'Billie Eilish', 'youtube_id' => 'zTkAzhp10Hw'],
+            ['judul' => 'Do You Ever Think of Me? (2026)', 'artis' => 'Billie Eilish', 'youtube_id' => 'YlnZQ33i22I'],
+            ['judul' => 'I Don\'t Care (2026)', 'artis' => 'Billie Eilish', 'youtube_id' => 'bB1AsKeNPrU'],
+            ['judul' => 'Taylor Swift Songs Playlist 2026', 'artis' => 'Taylor Swift', 'youtube_id' => 'SotYuDx_y84'],
+            ['judul' => 'Top Songs Taylor Swift 2025 (Lyrics)', 'artis' => 'Taylor Swift', 'youtube_id' => 'MLMUaWnz5Og'],
+            ['judul' => 'Greatest Hits Playlist 2026', 'artis' => 'Taylor Swift', 'youtube_id' => 'XmJkvQNfH1c'],
+            ['judul' => 'Full Album Greatest Hits 2026', 'artis' => 'Taylor Swift', 'youtube_id' => 'yia1AfBAj5k'],
+            ['judul' => 'Top Taylor Swift Songs Playlist 2026', 'artis' => 'Taylor Swift', 'youtube_id' => 'h8lpAY_xw4Q'],
+            ['judul' => 'Billboard 2026 Top Hits', 'artis' => 'The Weeknd', 'youtube_id' => 'BRvKVvYO-n4'],
+            ['judul' => 'Billboard Top 50 This Week', 'artis' => 'The Weeknd', 'youtube_id' => 'vaIn77n_Yb8'],
+            ['judul' => 'NEW LOVE (Prod. LIZX)', 'artis' => 'The Weeknd', 'youtube_id' => 'R2tDkE-uHrY'],
+            ['judul' => 'Open Hearts (Official Video)', 'artis' => 'The Weeknd', 'youtube_id' => 'Bn-3ICGjz0U'],
+            ['judul' => 'Top Hits 2026', 'artis' => 'The Weeknd', 'youtube_id' => '0rYKbMjtnMo'],
         ];
 
-        foreach ($files as $file) {
-            if (pathinfo($file, PATHINFO_EXTENSION) !== 'mp4') continue;
-
-            // Try to parse "Artist - Title" or "Title - Artist"
-            // Default: Use Filename as Title
-            $filename = pathinfo($file, PATHINFO_FILENAME);
-            
-            // Handle different dash types (hyphen, en-dash, em-dash)
-            $filenameClean = str_replace(['–', '—'], '-', $filename);
-            $parts = explode(' - ', $filenameClean);
-            
-            if (count($parts) >= 2) {
-                // Heuristic: Check common patterns
-                // Pattern 1: Artist - Title (Suffix)
-                $artis = trim($parts[0]);
-                $judul = trim($parts[1]); 
-                
-                // Cleanup Title (remove (Karaoke Version), _ Lyrics, etc)
-                $judul = preg_replace('/\s*\(.*?\)\s*/', '', $judul);
-                $judul = str_replace('_ Lyrics', '', $judul);
-                $judul = trim($judul);
-            } else {
-                // Callback if no dash found, check for other patterns or use full filename
-                if (stripos($filename, 'Tenxi') !== false) {
-                    $artis = 'Tenxi';
-                    $judul = str_replace(['(Official Karaoke)', '(Karaoke Version)'], '', $filename);
-                } else {
-                    $artis = 'Unknown Artist';
-                    $judul = $filename;
-                }
-            }
-
-            // Determine Cover
-            $cover = 'https://via.placeholder.com/400x225?text=' . urlencode($judul);
-            foreach ($coverMap as $key => $url) {
-                if (stripos($artis, $key) !== false) {
-                    $cover = $url;
-                    break;
-                }
-            }
-            
-            // Hardcode specific nice covers from previous static data if matches vaguely
-            if (stripos($file, 'Ocean Eyes') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b273f05db5fcbd06612df388675f';
-            if (stripos($file, 'WILDFLOWER') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b273c5248238680d297a70196726';
-            if (stripos($file, 'lovely') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b2738b52c6b9bc4e43d873869699';
-            if (stripos($file, 'Favorite Girl') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b273e6dfd1587a829f0ce63a8a9a';
-            if (stripos($file, 'Cinnamon Girl') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b273dd1072d733190dfd04bfab72';
-            if (stripos($file, 'Summertime Sadness') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b273822d65077227d881075d9e5b';
-            if (stripos($file, 'Young And Beautiful') !== false) $cover = 'https://i.scdn.co/image/ab67616d0000b27357c32087dff592a392237077';
-            if (stripos($file, 'Mejikuhibiniu') !== false) $cover = 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/ce/20/92/ce209210-6126-70e6-9907-8890db7aa61a/cover.jpg/1200x1200bf-60.jpg';
-            if (stripos($file, 'Garam & Madu') !== false) $cover = 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/10/56/67/10566723-b1d6-8488-829d-71321f3074b6/cover.jpg/1200x1200bf-60.jpg';
-            if (stripos($file, 'ours to keep') !== false) $cover = 'https://via.placeholder.com/400x400/1e293b/fbbf24?text=' . urlencode('Ours To Keep');
-            // Rihanna Specifics (can override generic artist map if needed, but map is good)
-
-            // Hardcode Duration for Demo Purposes (in seconds)
-            $durasiMap = [
-                'Ocean Eyes' => 219, // 3:39
-                'WILDFLOWER' => 240,
-                'lovely' => 200,
-                'Favorite Girl' => 250,
-                'Cinnamon Girl' => 195,
-                'Summertime Sadness' => 266,
-                'Young And Beautiful' => 236,
-                'ours to keep' => 210, // 3:30
-                'Kiss It Better' => 253, // 4:13
-                'Bad' => 238, // 3:58
-            ];
-            
-            $durasiDetik = 240; // Default 4 mins
-            foreach ($durasiMap as $key => $val) {
-                 if (stripos($file, $key) !== false) {
-                    $durasiDetik = $val;
-                    break;
-                }
-            }
-
-            // Determine Language
-            $bahasa = 'Indonesia'; // Default
-            if (preg_match('/[a-zA-Z]/', $judul) && stripos($judul, 'ours') !== false) $bahasa = 'Inggris';
-            if (stripos($artis, 'Billie Eilish') !== false || stripos($artis, 'Justin Bieber') !== false || stripos($artis, 'Lana Del Rey') !== false || stripos($artis, 'Rihanna') !== false || stripos($artis, 'Wale') !== false) $bahasa = 'Inggris';
-
-            // Check for Sprite existence
-            $spriteName = $filename . '_sprite.jpg';
-            $spritePath = public_path('assets/lagu/' . $spriteName);
-            $hasSprite = file_exists($spritePath);
-            $spriteUrl = $hasSprite ? '/assets/lagu/' . $spriteName : null;
-
+        $songs = [];
+        foreach ($youtubeList as $item) {
+            $bahasa = 'Inggris';
             $songs[] = [
-                'judul' => $judul,
-                'artis' => $artis,
-                'genre' => 'Pop', // Default
+                'judul' => $item['judul'],
+                'artis' => $item['artis'],
+                'genre' => 'Pop',
                 'bahasa' => $bahasa, 
-                'durasi' => $durasiDetik, // Changed to integer seconds
-                'diputar' => rand(500, 5000), // Randomize stats
-                'file' => $file,
-                'url' => '/assets/lagu/' . $file, // Explicit full URL
-                'video_preview' => '/assets/lagu/' . $file, // Use same file for preview as per request
-                'cover' => $cover,
-                'is_hls' => false, // Default false for raw mp4
-                'sprite_url' => $spriteUrl
+                'durasi' => 240, 
+                'diputar' => rand(500, 5000), 
+                'file' => $item['youtube_id'],
+                'url' => 'https://www.youtube.com/embed/' . $item['youtube_id'] . '?autoplay=1&controls=0&rel=0&showinfo=0&enablejsapi=1',
+                'video_preview' => 'https://img.youtube.com/vi/' . $item['youtube_id'] . '/mqdefault.jpg',
+                'cover' => 'https://img.youtube.com/vi/' . $item['youtube_id'] . '/mqdefault.jpg',
+                'is_hls' => false, 
+                'sprite_url' => null,
+                'is_youtube' => true,
+                'youtube_id' => $item['youtube_id']
             ];
         }
 

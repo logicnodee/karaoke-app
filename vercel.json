@@ -6,9 +6,8 @@
             "use": "vercel-php@0.9.0",
             "config": {
                 "excludeFiles": [
-                    "public/assets/video_banner/**",
-                    "public/assets/lagu/**",
-                    "node_modules/**"
+                    "node_modules/**",
+                    "public/assets/**"
                 ]
             }
         },
@@ -17,11 +16,6 @@
             "use": "@vercel/static"
         }
     ],
-    "functions": {
-        "api/index.php": {
-            "excludeFiles": "public/assets/{video_banner,lagu}/**"
-        }
-    },
     "routes": [
         {
             "src": "/build/(.*)",

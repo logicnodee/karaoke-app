@@ -1,0 +1,7 @@
+remote: error: Trace: 94365c08a26d4818d3c893b000aca2f193f80db8746468a7fbc90d8db8aae494        
+remote: error: See https://gh.io/lfs for more information.        
+remote: error: File public/assets/video_banner/english.mp4 is 163.80 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
+To https://github.com/logicnodee/karaoke-app.git
+ ! [remote rejected] main -> main (pre-receive hook declined)
+error: failed to push some refs to 'https://github.com/logicnodee/karaoke-app.git'
